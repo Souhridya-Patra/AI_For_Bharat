@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Platform - Bharat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .speed-control {
+            grid-column: 1 / -1;
+        }
+
+        .speed-value {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-left: 10px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .status.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .audio-player {
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .audio-player.show {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #667eea;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .example-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 AI Voice Platform</h1>
+            <p>Text-to-Speech for Indian Languages</p>
+            <span class="badge">Powered by AWS Polly</span>
+        </div>
+
+        <form id="synthesisForm">
+            <div class="form-group">
+                <label for="text">Enter Text to Synthesize</label>
+                <textarea 
+                    id="text" 
+                    placeholder="Type or paste text in Hindi, English, or other Indian languages..."
+                    required
+                >नमस्ते भारत! यह एक AI आवाज़ प्लेटफ़ॉर्म है।</textarea>
+            </div>
+
+            <div class="controls">
+                <div class="form-group">
+                    <label for="language">Language</label>
+                    <select id="language">
+                        <option value="hi">Hindi (हिंदी)</option>
+                        <option value="en">English (US)</option>
+                        <option value="en-IN">English (Indian)</option>
+                        <option value="ta">Tamil (தமிழ்)</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                        <option value="mr">Marathi (मराठी)</option>
+                    </select>
+                </div>
+
+                <div class="form-group speed-control">
+                    <label for="speed">
+                        Speech Speed
+                        <span class="speed-value" id="speedValue">1.0x</span>
+                    </label>
+                    <input 
+                        type="range" 
+                        id="speed" 
+                        min="0.5" 
+                        max="2.0" 
+                        step="0.1" 
+                        value="1.0"
+                    >
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="synthesizeBtn">
+                🎵 Synthesize Speech
+            </button>
+        </form>
+
+        <div class="status" id="status"></div>
+
+        <div class="audio-player" id="audioPlayer">
+            <h3>✅ Synthesis Complete!</h3>
+            <audio controls id="audioElement"></audio>
+            <div class="info">
+                <div class="info-item">
+                    <div class="info-label">Duration</div>
+                    <div class="info-value" id="duration">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Sample Rate</div>
+                    <div class="info-value" id="sampleRate">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Latency</div>
+                    <div class="info-value" id="latency">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>📝 Try These Examples:</h3>
+            <div class="example-btn" data-text="नमस्ते भारत! यह एक AI आवाज़ प्लेटफ़ॉर्म है।" data-lang="hi">
+                Hindi Example
+            </div>
+            <div class="example-btn" data-text="Hello Bharat! This platform supports multiple Indian languages." data-lang="en-IN">
+                English (Indian)
+            </div>
+            <div class="example-btn" data-text="வணக்கம் பாரதம்! இது ஒரு AI குரல் தளம்." data-lang="ta">
+                Tamil Example
+            </div>
+            <div class="example-btn" data-text="আজকের আবহাওয়া কেমন আছে?" data-lang="bn">
+                Bengali Example
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Team SAAN</strong> | Leader: Souhridya Patra</p>
+            <p>AWS AI for Bharat Hackathon</p>
+            <p><a href="http://localhost:8000/docs" target="_blank">API Documentation</a></p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/v1';
+        
+        // Elements
+        const form = document.getElementById('synthesisForm');
+        const textArea = document.getElementById('text');
+        const languageSelect = document.getElementById('language');
+        const speedSlider = document.getElementById('speed');
+        const speedValue = document.getElementById('speedValue');
+        const synthesizeBtn = document.getElementById('synthesizeBtn');
+        const status = document.getElementById('status');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioElement = document.getElementById('audioElement');
+        const durationSpan = document.getElementById('duration');
+        const sampleRateSpan = document.getElementById('sampleRate');
+        const latencySpan = document.getElementById('latency');
+
+        // Update speed display
+        speedSlider.addEventListener('input', (e) => {
+            speedValue.textContent = `${e.target.value}x`;
+        });
+
+        // Example buttons
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textArea.value = btn.dataset.text;
+                languageSelect.value = btn.dataset.lang;
+            });
+        });
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const text = textArea.value.trim();
+            if (!text) return;
+
+            // Show loading
+            showStatus('loading', '⏳ Synthesizing speech...');
+            synthesizeBtn.disabled = true;
+            synthesizeBtn.innerHTML = '<span class="spinner"></span> Synthesizing...';
+            audioPlayer.classList.remove('show');
+
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch(`${API_URL}/synthesize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_id: 'default',
+                        language: languageSelect.value,
+                        speed: parseFloat(speedSlider.value),
+                        pitch: 0,
+                        stream: false,
+                        post_process: true
+                    })
+                });
+
+                const latency = Date.now() - startTime;
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail?.error?.message || 'Synthesis failed');
+                }
+
+                const result = await response.json();
+
+                // Show success
+                showStatus('success', '✅ Speech synthesized successfully!');
+                
+                // Update info
+                durationSpan.textContent = `${result.duration.toFixed(2)}s`;
+                sampleRateSpan.textContent = `${(result.sample_rate / 1000).toFixed(0)}kHz`;
+                latencySpan.textContent = `${latency}ms`;
+
+                // Play audio
+                audioElement.src = result.audio_url;
+                audioPlayer.classList.add('show');
+                
+                // Auto-play
+                setTimeout(() => {
+                    audioElement.play().catch(e => console.log('Autoplay prevented'));
+                }, 500);
+
+            } catch (error) {
+                showStatus('error', `❌ Error: ${error.message}`);
+                console.error('Synthesis error:', error);
+            } finally {
+                synthesizeBtn.disabled = false;
+                synthesizeBtn.innerHTML = '🎵 Synthesize Speech';
+            }
+        });
+
+        function showStatus(type, message) {
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        // Check API health on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                if (response.ok) {
+                    console.log('✅ API is running');
+                }
+            } catch (error) {
+                showStatus('error', '❌ Cannot connect to API. Please start the server: python start_server.py');
+            }
+        });
+    </script>
+</body>
+</html>

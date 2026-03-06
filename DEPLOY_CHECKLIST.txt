@@ -1,0 +1,81 @@
+═══════════════════════════════════════════════════════════
+    EC2 DEPLOYMENT CHECKLIST
+═══════════════════════════════════════════════════════════
+
+STEP 1: LAUNCH EC2 (5 min)
+═══════════════════════════════════════════════════════════
+[ ] Go to AWS Console → EC2
+[ ] Click "Launch Instance"
+[ ] Name: ai-voice-platform
+[ ] AMI: Ubuntu 22.04 LTS
+[ ] Instance: t2.medium
+[ ] Create key pair: ai-voice-key.pem (SAVE IT!)
+[ ] Security group: Allow ports 22, 80, 8000, 3000
+[ ] Launch instance
+[ ] Note Public IP: ___________________
+
+STEP 2: GITHUB (10 min)
+═══════════════════════════════════════════════════════════
+[ ] Create GitHub repo: ai-voice-platform
+[ ] In PowerShell:
+    cd H:\Coding\Bharat
+    git init
+    git add .
+    git commit -m "Initial commit"
+    git remote add origin https://github.com/YOUR_USERNAME/ai-voice-platform.git
+    git push -u origin main
+[ ] Verify code is on GitHub
+
+STEP 3: CONNECT TO EC2 (2 min)
+═══════════════════════════════════════════════════════════
+[ ] Open PowerShell
+[ ] cd to where you saved ai-voice-key.pem
+[ ] Run: ssh -i ai-voice-key.pem ubuntu@YOUR_EC2_IP
+[ ] Type "yes" when asked
+[ ] You should see ubuntu@ip-xxx prompt
+
+STEP 4: SETUP EC2 (5 min)
+═══════════════════════════════════════════════════════════
+[ ] Run: sudo apt update && sudo apt upgrade -y
+[ ] Run: sudo apt install -y python3.11 python3-pip git libsndfile1
+[ ] Run: git clone https://github.com/YOUR_USERNAME/ai-voice-platform.git
+[ ] Run: cd ai-voice-platform
+[ ] Run: pip3 install fastapi uvicorn boto3 soundfile python-multipart python-dotenv
+[ ] Configure AWS credentials (see EC2_DEPLOYMENT_STEPS.md)
+
+STEP 5: START SERVICES (3 min)
+═══════════════════════════════════════════════════════════
+[ ] Run: sudo apt install -y screen
+[ ] Run: screen -S backend
+[ ] Run: cd ~/ai-voice-platform && python3 start_server.py
+[ ] Press Ctrl+A then D (to detach)
+[ ] Run: screen -S frontend
+[ ] Run: cd ~/ai-voice-platform && python3 start_frontend.py
+[ ] Press Ctrl+A then D (to detach)
+
+STEP 6: TEST (2 min)
+═══════════════════════════════════════════════════════════
+[ ] Open browser
+[ ] Go to: http://YOUR_EC2_IP:3000
+[ ] Click "Synthesize Speech"
+[ ] Audio plays! ✓
+[ ] Test API docs: http://YOUR_EC2_IP:8000/docs
+
+STEP 7: SHARE (1 min)
+═══════════════════════════════════════════════════════════
+[ ] Frontend URL: http://YOUR_EC2_IP:3000
+[ ] API Docs URL: http://YOUR_EC2_IP:8000/docs
+[ ] GitHub URL: https://github.com/YOUR_USERNAME/ai-voice-platform
+[ ] Update FOR_JUDGES.md with these URLs
+[ ] Share with judges!
+
+═══════════════════════════════════════════════════════════
+    TOTAL TIME: ~30 MINUTES
+═══════════════════════════════════════════════════════════
+
+YOUR URLS (fill in):
+Frontend: http://________________:3000
+API Docs: http://________________:8000/docs
+GitHub: https://github.com/________________/ai-voice-platform
+
+═══════════════════════════════════════════════════════════

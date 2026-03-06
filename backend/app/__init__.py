@@ -1,0 +1,2 @@
+"""AI Voice Platform backend application."""
+__version__ = "1.0.0"
