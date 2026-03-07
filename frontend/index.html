@@ -300,14 +300,13 @@
                 <div class="form-group">
                     <label for="language">Language</label>
                     <select id="language">
-                        <option value="hi">Hindi (हिंदी)</option>
-                        <option value="en">English (US)</option>
-                        <option value="en-IN">English (Indian)</option>
-                        <option value="ta">Tamil (தமிழ்)</option>
-                        <option value="te">Telugu (తెలుగు)</option>
-                        <option value="bn">Bengali (বাংলা)</option>
-                        <option value="mr">Marathi (मराठी)</option>
+                        <option value="hi">Hindi (हिंदी) ✓</option>
+                        <option value="en-IN">English (Indian) ✓</option>
+                        <option value="en">English (US) ✓</option>
                     </select>
+                    <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
+                        Note: Tamil, Telugu, Bengali, and Marathi are not yet supported by AWS Polly
+                    </small>
                 </div>
 
                 <div class="form-group speed-control">
@@ -360,11 +359,11 @@
             <div class="example-btn" data-text="Hello Bharat! This platform supports multiple Indian languages." data-lang="en-IN">
                 English (Indian)
             </div>
-            <div class="example-btn" data-text="வணக்கம் பாரதம்! இது ஒரு AI குரல் தளம்." data-lang="ta">
-                Tamil Example
+            <div class="example-btn" data-text="Welcome to the AI Voice Platform powered by AWS Polly." data-lang="en">
+                English (US)
             </div>
-            <div class="example-btn" data-text="আজকের আবহাওয়া কেমন আছে?" data-lang="bn">
-                Bengali Example
+            <div class="example-btn" data-text="आज का मौसम कैसा है? मुझे हिंदी में बताइए।" data-lang="hi">
+                Hindi Weather
             </div>
         </div>
 

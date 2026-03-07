@@ -18,23 +18,27 @@ class PollySynthesisEngine:
         self.sample_rate = self.sample_rate_standard  # Default to standard
         
         # Map language codes to Polly voices
+        # Note: AWS Polly has limited Indian language support
         self.voice_map = {
             "en": "Joanna",      # English (US) - Female
             "en-US": "Joanna",
             "en-GB": "Emma",     # English (UK) - Female
-            "en-IN": "Aditi",    # English (Indian) - Female
-            "hi": "Aditi",       # Hindi - Female
+            "en-IN": "Aditi",    # English (Indian) - Female - SUPPORTED
+            "hi": "Aditi",       # Hindi - Female - SUPPORTED
             "hi-IN": "Aditi",
-            "ta": "Aditi",       # Tamil (use Hindi voice)
-            "ta-IN": "Aditi",
-            "te": "Aditi",       # Telugu (use Hindi voice)
-            "te-IN": "Aditi",
-            "bn": "Aditi",       # Bengali (use Hindi voice)
-            "bn-IN": "Aditi",
-            "mr": "Aditi",       # Marathi (use Hindi voice)
-            "mr-IN": "Aditi",
+            "ta": None,          # Tamil - NOT SUPPORTED by Polly
+            "ta-IN": None,
+            "te": None,          # Telugu - NOT SUPPORTED by Polly
+            "te-IN": None,
+            "bn": None,          # Bengali - NOT SUPPORTED by Polly
+            "bn-IN": None,
+            "mr": None,          # Marathi - NOT SUPPORTED by Polly
+            "mr-IN": None,
             "auto": "Aditi",     # Default to Indian English
         }
+        
+        # Supported languages (for validation)
+        self.supported_languages = {"en", "en-US", "en-GB", "en-IN", "hi", "hi-IN", "auto"}
     
     def synthesize(
         self,
@@ -59,8 +63,21 @@ class PollySynthesisEngine:
         """
         logger.info(f"[POLLY] Synthesizing text with language={language}, speed={speed}")
         
+        # Check if language is supported
+        if language and language not in self.supported_languages:
+            error_msg = (
+                f"Language '{language}' is not supported by AWS Polly. "
+                f"Supported languages: Hindi (hi), English (en, en-IN). "
+                f"Tamil, Telugu, Bengali, and Marathi are not available in AWS Polly."
+            )
+            logger.error(f"[POLLY] {error_msg}")
+            raise ValueError(error_msg)
+        
         # Get Polly voice for language
         polly_voice = self.voice_map.get(language or "auto", "Aditi")
+        
+        if polly_voice is None:
+            raise ValueError(f"No voice available for language: {language}")
         
         # Convert speed to Polly format (percentage)
         # Polly supports 20% to 200%
