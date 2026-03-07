@@ -141,9 +141,17 @@ async def _stream_audio(request: SynthesisRequest, request_id: str):
 async def _save_audio_to_s3(audio_data, request_id: str) -> str:
     """Save audio to S3 and return URL."""
     try:
-        # Handle both bytes (Polly) and numpy arrays (Mock/SageMaker)
-        if isinstance(audio_data, bytes):
-            # Convert PCM bytes to WAV
+        # Determine audio format
+        is_mp3 = isinstance(audio_data, bytes) and audio_data[:3] == b'ID3' or audio_data[:2] == b'\xff\xfb'
+        
+        # Handle different audio formats
+        if is_mp3:
+            # gTTS returns MP3 directly
+            wav_bytes = audio_data
+            file_extension = "mp3"
+            content_type = "audio/mpeg"
+        elif isinstance(audio_data, bytes):
+            # Convert PCM bytes to WAV (Polly)
             import wave
             buffer = io.BytesIO()
             with wave.open(buffer, 'wb') as wav_file:
@@ -152,17 +160,21 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
                 wav_file.setframerate(24000)
                 wav_file.writeframes(audio_data)
             buffer.seek(0)
-            wav_bytes = buffer.read()  # Read all bytes before closing
+            wav_bytes = buffer.read()
+            file_extension = "wav"
+            content_type = "audio/wav"
         else:
-            # Convert numpy array to WAV bytes
+            # Convert numpy array to WAV bytes (Mock/SageMaker)
             buffer = io.BytesIO()
             sf.write(buffer, audio_data, 24000, format='WAV')
             buffer.seek(0)
-            wav_bytes = buffer.read()  # Read all bytes before closing
+            wav_bytes = buffer.read()
+            file_extension = "wav"
+            content_type = "audio/wav"
         
         # Generate S3 key
         timestamp = datetime.utcnow().strftime("%Y%m%d")
-        s3_key = f"synthesized/{timestamp}/{request_id}.wav"
+        s3_key = f"synthesized/{timestamp}/{request_id}.{file_extension}"
         
         # Upload to S3 with public-read ACL
         try:
@@ -173,7 +185,7 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
                 settings.s3_bucket_name,
                 s3_key,
                 ExtraArgs={
-                    'ContentType': 'audio/wav',
+                    'ContentType': content_type,
                     'ACL': 'public-read'
                 }
             )
@@ -191,7 +203,7 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
                 upload_buffer,
                 settings.s3_bucket_name,
                 s3_key,
-                ExtraArgs={'ContentType': 'audio/wav'}
+                ExtraArgs={'ContentType': content_type}
             )
             
             # Generate presigned URL with correct signature version

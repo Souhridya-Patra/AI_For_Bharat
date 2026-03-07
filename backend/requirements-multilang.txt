@@ -1,0 +1,24 @@
+# Multi-language support requirements
+# Includes gTTS for Tamil, Telugu, Bengali, Marathi, etc.
+
+# Core FastAPI
+fastapi==0.109.2
+uvicorn==0.27.1
+
+# AWS SDK
+boto3==1.34.51
+
+# Audio processing
+soundfile==0.12.1
+
+# File upload support
+python-multipart==0.0.9
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Google Text-to-Speech for additional Indian languages
+gTTS==2.5.0
+
+# Audio file handling
+pydub==0.25.1

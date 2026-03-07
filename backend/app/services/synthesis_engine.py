@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class VoiceSynthesisEngine:
-    """Voice synthesis engine using XTTS-v2 on SageMaker, AWS Polly, or mock for development."""
+    """Voice synthesis engine using AWS Polly for supported languages and gTTS for others."""
     
     def __init__(self):
         """Initialize synthesis engine."""
@@ -18,17 +18,31 @@ class VoiceSynthesisEngine:
         self.use_mock = settings.use_mock_synthesis
         self.use_polly = settings.use_aws_polly
         
-        # Determine which engine to use
+        # Languages supported by AWS Polly
+        self.polly_languages = {"en", "en-US", "en-GB", "en-IN", "hi", "hi-IN", "auto"}
+        
+        # Languages supported by Google TTS
+        self.gtts_languages = {"ta", "ta-IN", "te", "te-IN", "bn", "bn-IN", "mr", "mr-IN", "kn", "kn-IN", "ml", "ml-IN", "gu", "gu-IN"}
+        
+        # Determine which engines to use
         if self.use_polly:
-            logger.info("Using AWS Polly for real voice synthesis")
+            logger.info("Using AWS Polly for Hindi and English")
             from app.services.polly_synthesis import polly_synthesis_engine
             self.polly_engine = polly_synthesis_engine
-        elif self.use_mock:
+        
+        # Always initialize gTTS for additional languages
+        try:
+            from app.services.gtts_synthesis import gtts_synthesis_engine
+            self.gtts_engine = gtts_synthesis_engine
+            logger.info("Using Google TTS for Tamil, Telugu, Bengali, Marathi, and other Indian languages")
+        except ImportError:
+            logger.warning("gTTS not available - install with: pip install gTTS")
+            self.gtts_engine = None
+        
+        if self.use_mock:
             logger.warning("Using MOCK synthesis engine - set use_mock_synthesis=False in .env for production")
             from app.services.mock_synthesis import mock_synthesis_engine
             self.mock_engine = mock_synthesis_engine
-        else:
-            logger.info("Using SageMaker endpoint for synthesis")
     
     def synthesize(
         self,
@@ -49,17 +63,39 @@ class VoiceSynthesisEngine:
             language: Language code (auto-detect if None)
         
         Returns:
-            Audio waveform as bytes (Polly) or numpy array (SageMaker/Mock)
+            Audio waveform as bytes or numpy array
         """
-        # Use AWS Polly if enabled
-        if self.use_polly:
-            return self.polly_engine.synthesize(text, voice_id, speed, pitch, language)
-        
         # Use mock if enabled
         if self.use_mock:
             return self.mock_engine.synthesize(text, voice_id, speed, pitch, language)
         
-        # Use SageMaker endpoint
+        # Determine which engine to use based on language
+        if language in self.polly_languages:
+            # Use AWS Polly for Hindi and English
+            if self.use_polly:
+                return self.polly_engine.synthesize(text, voice_id, speed, pitch, language)
+        elif language in self.gtts_languages:
+            # Use Google TTS for other Indian languages
+            if self.gtts_engine:
+                return self.gtts_engine.synthesize(text, voice_id, speed, pitch, language)
+            else:
+                raise RuntimeError(f"Language '{language}' requires gTTS. Install with: pip install gTTS")
+        
+        # Fallback to SageMaker or error
+        if not self.use_polly and not self.use_mock:
+            return self._synthesize_sagemaker(text, voice_id, speed, pitch, language)
+        
+        raise ValueError(f"Unsupported language: {language}")
+    
+    def _synthesize_sagemaker(
+        self,
+        text: str,
+        voice_id: str,
+        speed: float,
+        pitch: int,
+        language: Optional[str]
+    ):
+        """Synthesize using SageMaker endpoint."""
         logger.info(f"Synthesizing text with voice_id={voice_id}, speed={speed}, pitch={pitch}")
         
         # Import numpy only when needed for SageMaker

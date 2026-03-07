@@ -300,12 +300,19 @@
                 <div class="form-group">
                     <label for="language">Language</label>
                     <select id="language">
-                        <option value="hi">Hindi (हिंदी) ✓</option>
-                        <option value="en-IN">English (Indian) ✓</option>
-                        <option value="en">English (US) ✓</option>
+                        <option value="hi">Hindi (हिंदी)</option>
+                        <option value="en-IN">English (Indian)</option>
+                        <option value="en">English (US)</option>
+                        <option value="ta">Tamil (தமிழ்)</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                        <option value="mr">Marathi (मराठी)</option>
+                        <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                        <option value="ml">Malayalam (മലയാളം)</option>
+                        <option value="gu">Gujarati (ગુજરાતી)</option>
                     </select>
                     <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
-                        Note: Tamil, Telugu, Bengali, and Marathi are not yet supported by AWS Polly
+                        Hindi & English use AWS Polly (high quality) | Other languages use Google TTS
                     </small>
                 </div>
 
@@ -359,11 +366,17 @@
             <div class="example-btn" data-text="Hello Bharat! This platform supports multiple Indian languages." data-lang="en-IN">
                 English (Indian)
             </div>
-            <div class="example-btn" data-text="Welcome to the AI Voice Platform powered by AWS Polly." data-lang="en">
-                English (US)
+            <div class="example-btn" data-text="வணக்கம் பாரதம்! இது ஒரு AI குரல் தளம்." data-lang="ta">
+                Tamil Example
             </div>
-            <div class="example-btn" data-text="आज का मौसम कैसा है? मुझे हिंदी में बताइए।" data-lang="hi">
-                Hindi Weather
+            <div class="example-btn" data-text="নমস্কার ভারত! এটি একটি AI ভয়েস প্ল্যাটফর্ম।" data-lang="bn">
+                Bengali Example
+            </div>
+            <div class="example-btn" data-text="నమస్కారం భారత్! ఇది ఒక AI వాయిస్ ప్లాట్‌ఫారమ్." data-lang="te">
+                Telugu Example
+            </div>
+            <div class="example-btn" data-text="नमस्कार भारत! हे एक AI आवाज प्लॅटफॉर्म आहे." data-lang="mr">
+                Marathi Example
             </div>
         </div>
 

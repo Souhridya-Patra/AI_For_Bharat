@@ -2,11 +2,11 @@
 
 ## Quick Access
 
-**Live Demo:** [Your deployed URL here]
+**Live Demo:** http://YOUR_EC2_IP:3000
 
-**API Documentation:** [Your API docs URL here]
+**API Documentation:** http://YOUR_EC2_IP:8000/docs
 
-**GitHub Repository:** [Your GitHub URL here]
+**GitHub Repository:** https://github.com/YOUR_USERNAME/ai-voice-platform
 
 ---
 
@@ -25,7 +25,7 @@
 Use the interactive API docs or curl:
 
 ```bash
-curl -X POST "http://your-url:8000/v1/synthesize" \
+curl -X POST "http://YOUR_EC2_IP:8000/v1/synthesize" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "नमस्ते भारत!",

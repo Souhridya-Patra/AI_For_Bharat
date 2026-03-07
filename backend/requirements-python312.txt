@@ -1,0 +1,21 @@
+# Minimal requirements for Python 3.12+ (avoids Rust compilation)
+# Use this if you get Pydantic/Rust errors
+
+# Core FastAPI (without pydantic v2)
+fastapi==0.109.2
+uvicorn==0.27.1
+
+# AWS SDK
+boto3==1.34.51
+
+# Audio processing
+soundfile==0.12.1
+
+# File upload support
+python-multipart==0.0.9
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Note: This uses an older FastAPI version that works with pydantic v1
+# which doesn't require Rust compilation

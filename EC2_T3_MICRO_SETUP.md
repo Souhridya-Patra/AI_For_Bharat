@@ -17,20 +17,22 @@ After connecting to EC2, use these optimized commands:
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install Python and essentials
-sudo apt install -y python3.11 python3-pip git libsndfile1
+# Install Python and essentials (Python 3.10 is pre-installed on Ubuntu 22.04)
+sudo apt install -y python3-pip git libsndfile1
 
 # Clone repository
 git clone https://github.com/YOUR_USERNAME/ai-voice-platform.git
 cd ai-voice-platform
 
-# Install dependencies (one by one to avoid memory issues)
-pip3 install fastapi
-pip3 install uvicorn
-pip3 install boto3
-pip3 install soundfile
-pip3 install python-multipart
-pip3 install python-dotenv
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install fastapi uvicorn boto3 soundfile python-multipart python-dotenv
+
+# Alternative: Install without venv (use --break-system-packages)
+# pip3 install --break-system-packages fastapi uvicorn boto3 soundfile python-multipart python-dotenv
 
 # Configure AWS credentials
 mkdir -p ~/.aws
@@ -53,12 +55,14 @@ sudo apt install -y screen
 # Start backend
 screen -S backend
 cd ~/ai-voice-platform
+source venv/bin/activate  # Activate venv if you created one
 python3 start_server.py
 # Press Ctrl+A then D to detach
 
 # Start frontend
 screen -S frontend
 cd ~/ai-voice-platform
+source venv/bin/activate  # Activate venv if you created one
 python3 start_frontend.py
 # Press Ctrl+A then D to detach
 ```
