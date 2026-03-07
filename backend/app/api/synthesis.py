@@ -141,36 +141,47 @@ async def _stream_audio(request: SynthesisRequest, request_id: str):
 async def _save_audio_to_s3(audio_data, request_id: str) -> str:
     """Save audio to S3 and return URL."""
     try:
-        # Determine audio format
-        is_mp3 = isinstance(audio_data, bytes) and audio_data[:3] == b'ID3' or audio_data[:2] == b'\xff\xfb'
-        
-        # Handle different audio formats
-        if is_mp3:
-            # gTTS returns MP3 directly
-            wav_bytes = audio_data
-            file_extension = "mp3"
-            content_type = "audio/mpeg"
-        elif isinstance(audio_data, bytes):
-            # Convert PCM bytes to WAV (Polly)
-            import wave
-            buffer = io.BytesIO()
-            with wave.open(buffer, 'wb') as wav_file:
-                wav_file.setnchannels(1)  # Mono
-                wav_file.setsampwidth(2)  # 16-bit
-                wav_file.setframerate(24000)
-                wav_file.writeframes(audio_data)
-            buffer.seek(0)
-            wav_bytes = buffer.read()
-            file_extension = "wav"
-            content_type = "audio/wav"
+        # Determine audio format based on data type and content
+        if isinstance(audio_data, bytes):
+            # Check if it's MP3 (gTTS) or PCM (Polly)
+            # MP3 files start with ID3 tag or MPEG sync bytes
+            is_mp3 = (len(audio_data) > 3 and 
+                     (audio_data[:3] == b'ID3' or 
+                      audio_data[:2] == b'\xff\xfb' or 
+                      audio_data[:2] == b'\xff\xf3' or
+                      audio_data[:2] == b'\xff\xf2'))
+            
+            if is_mp3:
+                # gTTS returns MP3 directly - no conversion needed
+                logger.info(f"Detected MP3 format from gTTS, size={len(audio_data)} bytes")
+                audio_bytes = audio_data
+                file_extension = "mp3"
+                content_type = "audio/mpeg"
+            else:
+                # Convert PCM bytes to WAV (Polly)
+                logger.info(f"Converting PCM to WAV, size={len(audio_data)} bytes")
+                import wave
+                buffer = io.BytesIO()
+                with wave.open(buffer, 'wb') as wav_file:
+                    wav_file.setnchannels(1)  # Mono
+                    wav_file.setsampwidth(2)  # 16-bit
+                    wav_file.setframerate(24000)
+                    wav_file.writeframes(audio_data)
+                buffer.seek(0)
+                audio_bytes = buffer.read()
+                file_extension = "wav"
+                content_type = "audio/wav"
         else:
             # Convert numpy array to WAV bytes (Mock/SageMaker)
+            logger.info(f"Converting numpy array to WAV")
             buffer = io.BytesIO()
             sf.write(buffer, audio_data, 24000, format='WAV')
             buffer.seek(0)
-            wav_bytes = buffer.read()
+            audio_bytes = buffer.read()
             file_extension = "wav"
             content_type = "audio/wav"
+        
+        logger.info(f"Final audio: format={file_extension}, size={len(audio_bytes)} bytes")
         
         # Generate S3 key
         timestamp = datetime.utcnow().strftime("%Y%m%d")
@@ -179,7 +190,7 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
         # Upload to S3 with public-read ACL
         try:
             # Create new buffer for upload
-            upload_buffer = io.BytesIO(wav_bytes)
+            upload_buffer = io.BytesIO(audio_bytes)
             aws_client.s3.upload_fileobj(
                 upload_buffer,
                 settings.s3_bucket_name,
@@ -198,7 +209,7 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
             logger.warning(f"Public upload failed, using presigned URL: {acl_error}")
             
             # Create new buffer for retry
-            upload_buffer = io.BytesIO(wav_bytes)
+            upload_buffer = io.BytesIO(audio_bytes)
             aws_client.s3.upload_fileobj(
                 upload_buffer,
                 settings.s3_bucket_name,
@@ -216,7 +227,7 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
                 ExpiresIn=3600
             )
         
-        logger.info(f"Audio saved to S3: {s3_key}")
+        logger.info(f"Audio saved to S3: {s3_key}, URL: {url}")
         return url
     
     except Exception as e:

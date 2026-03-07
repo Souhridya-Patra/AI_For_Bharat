@@ -73,11 +73,15 @@ class VoiceSynthesisEngine:
         if language in self.polly_languages:
             # Use AWS Polly for Hindi and English
             if self.use_polly:
+                logger.info(f"Using AWS Polly for language: {language}")
                 return self.polly_engine.synthesize(text, voice_id, speed, pitch, language)
         elif language in self.gtts_languages:
             # Use Google TTS for other Indian languages
             if self.gtts_engine:
-                return self.gtts_engine.synthesize(text, voice_id, speed, pitch, language)
+                logger.info(f"Using Google TTS for language: {language}")
+                result = self.gtts_engine.synthesize(text, voice_id, speed, pitch, language)
+                logger.info(f"gTTS returned {len(result) if isinstance(result, bytes) else 'unknown'} bytes")
+                return result
             else:
                 raise RuntimeError(f"Language '{language}' requires gTTS. Install with: pip install gTTS")
         
@@ -85,7 +89,7 @@ class VoiceSynthesisEngine:
         if not self.use_polly and not self.use_mock:
             return self._synthesize_sagemaker(text, voice_id, speed, pitch, language)
         
-        raise ValueError(f"Unsupported language: {language}")
+        raise ValueError(f"Unsupported language: {language}. Supported: {self.polly_languages | self.gtts_languages}")
     
     def _synthesize_sagemaker(
         self,
