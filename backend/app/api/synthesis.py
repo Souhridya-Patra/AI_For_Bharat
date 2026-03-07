@@ -152,11 +152,13 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
                 wav_file.setframerate(24000)
                 wav_file.writeframes(audio_data)
             buffer.seek(0)
+            wav_bytes = buffer.read()  # Read all bytes before closing
         else:
             # Convert numpy array to WAV bytes
             buffer = io.BytesIO()
             sf.write(buffer, audio_data, 24000, format='WAV')
             buffer.seek(0)
+            wav_bytes = buffer.read()  # Read all bytes before closing
         
         # Generate S3 key
         timestamp = datetime.utcnow().strftime("%Y%m%d")
@@ -164,8 +166,10 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
         
         # Upload to S3 with public-read ACL
         try:
+            # Create new buffer for upload
+            upload_buffer = io.BytesIO(wav_bytes)
             aws_client.s3.upload_fileobj(
-                buffer,
+                upload_buffer,
                 settings.s3_bucket_name,
                 s3_key,
                 ExtraArgs={
@@ -180,9 +184,11 @@ async def _save_audio_to_s3(audio_data, request_id: str) -> str:
         except Exception as acl_error:
             # If public-read fails, use presigned URL
             logger.warning(f"Public upload failed, using presigned URL: {acl_error}")
-            buffer.seek(0)
+            
+            # Create new buffer for retry
+            upload_buffer = io.BytesIO(wav_bytes)
             aws_client.s3.upload_fileobj(
-                buffer,
+                upload_buffer,
                 settings.s3_bucket_name,
                 s3_key,
                 ExtraArgs={'ContentType': 'audio/wav'}
