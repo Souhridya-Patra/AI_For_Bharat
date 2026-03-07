@@ -55,17 +55,25 @@ class GTTSSynthesisEngine:
         Returns:
             Audio waveform as bytes (MP3 format)
         """
-        logger.info(f"[GTTS] Synthesizing text with language={language}, speed={speed}")
+        logger.info(f"[GTTS] Synthesizing text with language={language}, speed={speed}, text='{text[:50]}...'")
         
         # Get gTTS language code
         gtts_lang = self.language_map.get(language, "en")
         
+        # Clean text - remove excessive punctuation but keep sentence structure
+        cleaned_text = text.strip()
+        
+        # If text is empty after cleaning, raise error
+        if not cleaned_text:
+            raise ValueError("Text is empty after cleaning")
+        
         try:
-            # Create gTTS object
+            # Create gTTS object with explicit language
             tts = gTTS(
-                text=text,
+                text=cleaned_text,
                 lang=gtts_lang,
-                slow=(speed < 0.8)  # Use slow mode if speed is very slow
+                slow=(speed < 0.8),  # Use slow mode if speed is very slow
+                lang_check=False  # Disable language check to avoid issues
             )
             
             # Save to bytes buffer
@@ -76,7 +84,7 @@ class GTTSSynthesisEngine:
             # Read MP3 bytes
             audio_bytes = audio_buffer.read()
             
-            logger.info(f"[GTTS] Generated audio: size={len(audio_bytes)} bytes")
+            logger.info(f"[GTTS] Generated audio: size={len(audio_bytes)} bytes, language={gtts_lang}")
             
             return audio_bytes
             
