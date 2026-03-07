@@ -19,3 +19,6 @@ python-multipart==0.0.6
 
 # Utilities
 python-dotenv==1.0.0
+
+# Multi-language TTS fallback
+gTTS==2.5.0

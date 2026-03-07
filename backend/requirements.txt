@@ -31,3 +31,4 @@ redis==5.0.1
 # Utilities
 python-dotenv==1.0.0
 httpx==0.26.0
+gTTS==2.5.0

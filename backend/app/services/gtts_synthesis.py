@@ -3,8 +3,6 @@ import logging
 from typing import Iterator, Optional
 import io
 from gtts import gTTS
-import numpy as np
-import soundfile as sf
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +16,12 @@ class GTTSSynthesisEngine:
         
         # Map language codes to gTTS language codes
         self.language_map = {
+            "en": "en",      # English
+            "en-US": "en",
+            "en-GB": "en",
+            "en-IN": "en",
+            "hi": "hi",      # Hindi
+            "hi-IN": "hi",
             "ta": "ta",      # Tamil
             "ta-IN": "ta",
             "te": "te",      # Telugu
@@ -32,6 +36,10 @@ class GTTSSynthesisEngine:
             "ml-IN": "ml",
             "gu": "gu",      # Gujarati
             "gu-IN": "gu",
+            "pa": "pa",      # Punjabi
+            "pa-IN": "pa",
+            "ur": "ur",      # Urdu
+            "ur-IN": "ur",
         }
     
     def synthesize(

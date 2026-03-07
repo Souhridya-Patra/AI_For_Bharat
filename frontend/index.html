@@ -283,7 +283,7 @@
         <div class="header">
             <h1>🎤 AI Voice Platform</h1>
             <p>Text-to-Speech for Indian Languages</p>
-            <span class="badge">Powered by AWS Polly</span>
+            <span class="badge">Powered by AWS Polly + Google TTS</span>
         </div>
 
         <form id="synthesisForm">
@@ -312,7 +312,7 @@
                         <option value="gu">Gujarati (ગુજરાતી)</option>
                     </select>
                     <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
-                        Hindi & English use AWS Polly (high quality) | Other languages use Google TTS
+                        Hindi/English use AWS Polly (high quality) • Other Indian languages use Google TTS fallback
                     </small>
                 </div>
 
@@ -359,31 +359,31 @@
         </div>
 
         <div class="examples">
-            <h3>📝 Try These Examples:</h3>
+            <h3>📝 Try These Multilingual Examples:</h3>
             <div class="example-btn" data-text="नमस्ते भारत! यह एक AI आवाज़ प्लेटफ़ॉर्म है।" data-lang="hi">
-                Hindi Example
+                Hindi Example (Polly)
             </div>
             <div class="example-btn" data-text="Hello Bharat! This platform supports multiple Indian languages." data-lang="en-IN">
-                English (Indian)
+                English (Indian) Example (Polly)
             </div>
             <div class="example-btn" data-text="வணக்கம் பாரதம்! இது ஒரு AI குரல் தளம்." data-lang="ta">
-                Tamil Example
+                Tamil Example (gTTS)
             </div>
             <div class="example-btn" data-text="নমস্কার ভারত! এটি একটি AI ভয়েস প্ল্যাটফর্ম।" data-lang="bn">
-                Bengali Example
+                Bengali Example (gTTS)
             </div>
             <div class="example-btn" data-text="నమస్కారం భారత్! ఇది ఒక AI వాయిస్ ప్లాట్‌ఫారమ్." data-lang="te">
-                Telugu Example
+                Telugu Example (gTTS)
             </div>
             <div class="example-btn" data-text="नमस्कार भारत! हे एक AI आवाज प्लॅटफॉर्म आहे." data-lang="mr">
-                Marathi Example
+                Marathi Example (gTTS)
             </div>
         </div>
 
         <div class="footer">
             <p><strong>Team SAAN</strong> | Leader: Souhridya Patra</p>
-            <p>AWS AI for Bharat Hackathon</p>
-            <p><a href="http://34.236.36.88:8000/docs" target="_blank">API Documentation</a></p>
+            <p>AWS AI for Bharat Hackathon | Hybrid TTS Routing (Polly + gTTS)</p>
+            <p><a href="http://34.236.36.88:8000/docs" target="_blank">API Documentation (Hybrid Routing)</a></p>
         </div>
     </div>
 

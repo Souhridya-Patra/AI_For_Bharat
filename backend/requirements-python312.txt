@@ -17,5 +17,8 @@ python-multipart==0.0.9
 # Environment variables
 python-dotenv==1.0.1
 
+# Multi-language TTS fallback
+gTTS==2.5.0
+
 # Note: This uses an older FastAPI version that works with pydantic v1
 # which doesn't require Rust compilation

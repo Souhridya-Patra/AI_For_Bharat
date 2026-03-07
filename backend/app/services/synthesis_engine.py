@@ -19,10 +19,36 @@ class VoiceSynthesisEngine:
         self.use_polly = settings.use_aws_polly
         
         # Languages supported by AWS Polly
-        self.polly_languages = {"en", "en-US", "en-GB", "en-IN", "hi", "hi-IN", "auto"}
+        self.polly_languages = {"en", "en-us", "en-gb", "en-in", "hi", "hi-in", "auto"}
+        self.language_aliases = {
+            "english": "en",
+            "hindi": "hi",
+            "tamil": "ta",
+            "telugu": "te",
+            "bengali": "bn",
+            "marathi": "mr",
+            "kannada": "kn",
+            "malayalam": "ml",
+            "gujarati": "gu",
+            "punjabi": "pa",
+            "urdu": "ur",
+        }
         
         # Languages supported by Google TTS
-        self.gtts_languages = {"ta", "ta-IN", "te", "te-IN", "bn", "bn-IN", "mr", "mr-IN", "kn", "kn-IN", "ml", "ml-IN", "gu", "gu-IN"}
+        self.gtts_languages = {
+            "en", "en-us", "en-gb", "en-in",
+            "hi", "hi-in",
+            "ta", "ta-in",
+            "te", "te-in",
+            "bn", "bn-in",
+            "mr", "mr-in",
+            "kn", "kn-in",
+            "ml", "ml-in",
+            "gu", "gu-in",
+            "pa", "pa-in",
+            "ur", "ur-in",
+            "auto",
+        }
         
         # Determine which engines to use
         if self.use_polly:
@@ -43,6 +69,40 @@ class VoiceSynthesisEngine:
             logger.warning("Using MOCK synthesis engine - set use_mock_synthesis=False in .env for production")
             from app.services.mock_synthesis import mock_synthesis_engine
             self.mock_engine = mock_synthesis_engine
+
+    def _normalize_language(self, language: Optional[str]) -> str:
+        """Normalize incoming language code/name to canonical lowercase form."""
+        if not language:
+            return "auto"
+
+        normalized = language.strip().lower().replace("_", "-")
+        normalized = self.language_aliases.get(normalized, normalized)
+
+        # Normalize region/script forms like hi-IN -> hi-in
+        parts = normalized.split("-")
+        if len(parts) > 1:
+            normalized = f"{parts[0]}-{parts[1]}"
+
+        return normalized
+
+    def _select_engine(self, normalized_language: str) -> str:
+        """Select synthesis engine based on normalized language."""
+        if self.use_mock:
+            return "mock"
+
+        if self.use_polly and normalized_language in self.polly_languages:
+            return "polly"
+
+        if self.gtts_engine and (
+            normalized_language in self.gtts_languages
+            or normalized_language.split("-")[0] in self.gtts_languages
+        ):
+            return "gtts"
+
+        if not self.use_polly:
+            return "sagemaker"
+
+        return "unsupported"
     
     def synthesize(
         self,
@@ -65,31 +125,30 @@ class VoiceSynthesisEngine:
         Returns:
             Audio waveform as bytes or numpy array
         """
-        # Use mock if enabled
-        if self.use_mock:
-            return self.mock_engine.synthesize(text, voice_id, speed, pitch, language)
-        
-        # Determine which engine to use based on language
-        if language in self.polly_languages:
-            # Use AWS Polly for Hindi and English
-            if self.use_polly:
-                logger.info(f"Using AWS Polly for language: {language}")
-                return self.polly_engine.synthesize(text, voice_id, speed, pitch, language)
-        elif language in self.gtts_languages:
-            # Use Google TTS for other Indian languages
-            if self.gtts_engine:
-                logger.info(f"Using Google TTS for language: {language}")
-                result = self.gtts_engine.synthesize(text, voice_id, speed, pitch, language)
-                logger.info(f"gTTS returned {len(result) if isinstance(result, bytes) else 'unknown'} bytes")
-                return result
-            else:
-                raise RuntimeError(f"Language '{language}' requires gTTS. Install with: pip install gTTS")
-        
-        # Fallback to SageMaker or error
-        if not self.use_polly and not self.use_mock:
-            return self._synthesize_sagemaker(text, voice_id, speed, pitch, language)
-        
-        raise ValueError(f"Unsupported language: {language}. Supported: {self.polly_languages | self.gtts_languages}")
+        normalized_language = self._normalize_language(language)
+        engine = self._select_engine(normalized_language)
+
+        if engine == "mock":
+            return self.mock_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
+
+        if engine == "polly":
+            logger.info(f"Using AWS Polly for language: {normalized_language}")
+            return self.polly_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
+
+        if engine == "gtts":
+            logger.info(f"Using Google TTS for language: {normalized_language}")
+            result = self.gtts_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
+            logger.info(f"gTTS returned {len(result) if isinstance(result, bytes) else 'unknown'} bytes")
+            return result
+
+        if engine == "sagemaker":
+            return self._synthesize_sagemaker(text, voice_id, speed, pitch, normalized_language)
+
+        raise ValueError(
+            f"Unsupported language: {language}. "
+            f"Supported Polly: {sorted(self.polly_languages)} | "
+            f"Supported gTTS: {sorted(self.gtts_languages)}"
+        )
     
     def _synthesize_sagemaker(
         self,
@@ -162,16 +221,24 @@ class VoiceSynthesisEngine:
         Yields:
             Audio chunks as bytes (Polly) or numpy arrays (SageMaker/Mock)
         """
-        # Use AWS Polly if enabled
-        if self.use_polly:
-            yield from self.polly_engine.synthesize_streaming(text, voice_id, speed, pitch, language)
+        normalized_language = self._normalize_language(language)
+        engine = self._select_engine(normalized_language)
+
+        if engine == "polly":
+            yield from self.polly_engine.synthesize_streaming(text, voice_id, speed, pitch, normalized_language)
             return
-        
-        # Use mock if enabled
-        if self.use_mock:
-            yield from self.mock_engine.synthesize_streaming(text, voice_id, speed, pitch, language)
+
+        if engine == "gtts":
+            yield from self.gtts_engine.synthesize_streaming(text, voice_id, speed, pitch, normalized_language)
             return
-        
+
+        if engine == "mock":
+            yield from self.mock_engine.synthesize_streaming(text, voice_id, speed, pitch, normalized_language)
+            return
+
+        if engine == "unsupported":
+            raise ValueError(f"Unsupported language for streaming: {language}")
+
         # Use SageMaker endpoint
         logger.info(f"Starting streaming synthesis for voice_id={voice_id}")
         
@@ -188,7 +255,7 @@ class VoiceSynthesisEngine:
                     voice_id=voice_id,
                     speed=speed,
                     pitch=pitch,
-                    language=language
+                    language=normalized_language
                 )
                 
                 yield audio_chunk
