@@ -390,6 +390,18 @@
 
             <div class="controls">
                 <div class="form-group">
+                    <label for="voiceSelect">Voice Source</label>
+                    <select id="voiceSelect" style="margin-bottom: 10px;">
+                        <option value="default">🎤 Default (AWS Polly Neural)</option>
+                        <optgroup label="🎭 Your Cloned Voices" id="clonedVoicesOptGroup">
+                        </optgroup>
+                    </select>
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        Select a cloned voice to dub with your own voice!
+                    </small>
+                </div>
+
+                <div class="form-group">
                     <label for="language">Language</label>
                     <select id="language">
                         <option value="hi">Hindi (हिंदी)</option>
@@ -535,6 +547,7 @@
         // Elements
         const form = document.getElementById('synthesisForm');
         const textArea = document.getElementById('text');
+        const voiceSelect = document.getElementById('voiceSelect');
         const languageSelect = document.getElementById('language');
         const speedSlider = document.getElementById('speed');
         const speedValue = document.getElementById('speedValue');
@@ -582,7 +595,7 @@
                     },
                     body: JSON.stringify({
                         text: text,
-                        voice_id: 'default',
+                        voice_id: voiceSelect.value,  // Use selected voice from dropdown
                         language: languageSelect.value,
                         speed: parseFloat(speedSlider.value),
                         pitch: 0,
@@ -770,6 +783,7 @@
         });
 
         function addClonedVoice(voiceId, voiceName) {
+            // Add to cloned voices list in Clone tab
             const voiceItem = document.createElement('div');
             voiceItem.className = 'voice-item';
             voiceItem.innerHTML = `
@@ -777,10 +791,33 @@
                 <span style="color: #888; font-size: 0.9em;">ID: ${voiceId}</span>
             `;
             voicesList.appendChild(voiceItem);
+
+            // Add to voice selector dropdown in Synthesis tab
+            const optgroup = document.getElementById('clonedVoicesOptGroup');
+            const option = document.createElement('option');
+            option.value = voiceId;
+            option.textContent = `🎭 ${voiceName}`;
+            optgroup.appendChild(option);
+
+            // Save to browser storage
+            let clonedVoices = JSON.parse(localStorage.getItem('clonedVoices') || '[]');
+            clonedVoices.push({ voiceId, voiceName });
+            localStorage.setItem('clonedVoices', JSON.stringify(clonedVoices));
         }
 
-        // Check API health on load
+        // Load cloned voices from storage on page load
         window.addEventListener('load', async () => {
+            // Load cloned voices dropdown
+            let storedVoices = JSON.parse(localStorage.getItem('clonedVoices') || '[]');
+            const optgroup = document.getElementById('clonedVoicesOptGroup');
+            storedVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.voiceId;
+                option.textContent = `🎭 ${voice.voiceName}`;
+                optgroup.appendChild(option);
+            });
+
+            // Check API health
             try {
                 const response = await fetch('http://34.236.36.88:8000/health');
                 if (response.ok) {
