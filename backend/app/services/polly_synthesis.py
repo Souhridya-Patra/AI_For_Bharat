@@ -91,10 +91,9 @@ class PollySynthesisEngine:
         # Check if voice supports neural engine
         use_neural = polly_voice in self.neural_voices
         
-        # Build SSML for natural speech with prosody controls
-        if speed != 1.0 or use_neural:
-            # Enhanced SSML with breathing pauses and natural intonation
-            ssml_text = f'<speak><prosody rate="{speed_percent}%"><amazon:auto-breaths>{text}</amazon:auto-breaths></prosody></speak>'
+        # Build SSML for speed control (simple, compatible with all neural voices)
+        if speed != 1.0:
+            ssml_text = f'<speak><prosody rate="{speed_percent}%">{text}</prosody></speak>'
             text_type = 'ssml'
         else:
             ssml_text = text

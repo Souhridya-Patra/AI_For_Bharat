@@ -63,8 +63,21 @@ async def synthesize_speech(request: SynthesisRequest):
             # Calculate duration
             sample_rate = 24000  # TODO: Get from synthesis engine
             if isinstance(audio_data, bytes):
-                # PCM audio: 2 bytes per sample (16-bit)
-                duration = len(audio_data) / (sample_rate * 2)
+                # Check if it's MP3 (gTTS) or PCM (Polly)
+                is_mp3 = (len(audio_data) > 3 and 
+                         (audio_data[:3] == b'ID3' or 
+                          audio_data[:2] in [b'\xff\xfb', b'\xff\xf3', b'\xff\xf2']))
+                
+                if is_mp3:
+                    # For MP3, estimate duration from file size
+                    # MP3 bitrate is typically 32-128 kbps, we'll estimate 64 kbps
+                    # Duration (seconds) = (file_size_bytes * 8) / (bitrate_bits_per_second)
+                    estimated_bitrate = 64000  # 64 kbps
+                    duration = (len(audio_data) * 8) / estimated_bitrate
+                    logger.info(f"MP3 duration estimated: {duration:.2f}s from {len(audio_data)} bytes")
+                else:
+                    # PCM audio: 2 bytes per sample (16-bit)
+                    duration = len(audio_data) / (sample_rate * 2)
             else:
                 # Numpy array
                 duration = len(audio_data) / sample_rate
