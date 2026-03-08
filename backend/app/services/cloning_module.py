@@ -6,6 +6,7 @@ import soundfile as sf
 import logging
 from typing import Tuple
 from datetime import datetime
+from decimal import Decimal
 from app.services.aws_client import aws_client
 from app.config import settings
 
@@ -117,8 +118,8 @@ class VoiceCloningModule:
             if 'Item' not in response:
                 raise ValueError(f"Voice model not found: {voice_id}")
             
-            # Convert embedding from list to numpy array
-            embedding = np.array(response['Item']['embedding'], dtype=np.float32)
+            # Convert embedding from Decimal list to numpy array
+            embedding = np.array([float(x) for x in response['Item']['embedding']], dtype=np.float32)
             
             return embedding
         
@@ -220,16 +221,17 @@ class VoiceCloningModule:
         table = aws_client.dynamodb.Table(settings.dynamodb_voices_table)
         
         try:
-            # Convert numpy float32 to Python float for DynamoDB compatibility
-            embedding_list = [float(x) for x in embedding]
+            # Convert numpy float32 to Decimal for DynamoDB compatibility
+            # DynamoDB requires Decimal types for numbers, not float
+            embedding_list = [Decimal(str(float(x))) for x in embedding]
             
             item = {
                 'id': voice_id,
                 'user_id': user_id,
                 'name': voice_name,
-                'embedding': embedding_list,  # List of Python floats
+                'embedding': embedding_list,  # List of Decimal values
                 'reference_audio_url': audio_url,
-                'reference_audio_duration': duration,
+                'reference_audio_duration': Decimal(str(duration)),
                 'created_at': datetime.utcnow().isoformat(),
                 'updated_at': datetime.utcnow().isoformat(),
                 'is_shared': False,
