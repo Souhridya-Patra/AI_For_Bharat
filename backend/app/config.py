@@ -45,6 +45,12 @@ class Settings:
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
         self.use_mock_synthesis = os.getenv("USE_MOCK_SYNTHESIS", "False").lower() == "true"
         self.use_aws_polly = os.getenv("USE_AWS_POLLY", "True").lower() == "true"
+        
+        # XTTS-v2 Configuration (Ultra-realistic voice synthesis)
+        self.use_xtts = os.getenv("USE_XTTS", "False").lower() == "true"
+        self.use_xtts_sagemaker = os.getenv("USE_XTTS_SAGEMAKER", "False").lower() == "true"
+        # Priority order: mock > xtts > polly > gtts (if respective flags are True)
+        self.synthesis_priority = os.getenv("SYNTHESIS_PRIORITY", "xtts,polly,gtts")
 
 
 settings = Settings()

@@ -31,4 +31,10 @@ redis==5.0.1
 # Utilities
 python-dotenv==1.0.0
 httpx==0.26.0
+
+# Multi-language TTS
 gTTS==2.5.0
+
+# XTTS-v2 for ultra-realistic voice cloning and synthesis
+TTS==0.22.0
+pydub==0.25.1

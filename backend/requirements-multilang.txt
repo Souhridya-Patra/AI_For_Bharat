@@ -22,3 +22,6 @@ gTTS==2.5.0
 
 # Audio file handling
 pydub==0.25.1
+
+# XTTS-v2 for ultra-realistic voice cloning and synthesis
+TTS==0.22.0

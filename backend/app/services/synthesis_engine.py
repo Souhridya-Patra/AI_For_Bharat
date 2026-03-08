@@ -17,6 +17,7 @@ class VoiceSynthesisEngine:
         self.min_sample_rate = 24000
         self.use_mock = settings.use_mock_synthesis
         self.use_polly = settings.use_aws_polly
+        self.use_xtts = settings.use_xtts
         
         # Languages supported by AWS Polly
         self.polly_languages = {"en", "en-us", "en-gb", "en-in", "hi", "hi-in", "auto"}
@@ -50,9 +51,20 @@ class VoiceSynthesisEngine:
             "auto",
         }
         
+        # Initialize XTTS-v2 (ultra-realistic synthesis)
+        self.xtts_engine = None
+        if self.use_xtts:
+            try:
+                from app.services.xtts_synthesis import get_xtts_engine
+                self.xtts_engine = get_xtts_engine()
+                logger.info("✨ XTTS-v2 enabled for ultra-realistic voice synthesis (ElevenLabs-quality)")
+            except Exception as e:
+                logger.warning(f"XTTS-v2 initialization failed: {e}. Falling back to Polly/gTTS")
+                self.use_xtts = False
+        
         # Determine which engines to use
         if self.use_polly:
-            logger.info("Using AWS Polly for Hindi and English")
+            logger.info("Using AWS Polly Neural for Hindi and English (high quality)")
             from app.services.polly_synthesis import polly_synthesis_engine
             self.polly_engine = polly_synthesis_engine
         
@@ -86,19 +98,28 @@ class VoiceSynthesisEngine:
         return normalized
 
     def _select_engine(self, normalized_language: str) -> str:
-        """Select synthesis engine based on normalized language."""
+        """Select synthesis engine based on normalized language and priority."""
         if self.use_mock:
             return "mock"
 
+        # XTTS has highest priority for all languages (when enabled)
+        # It provides the most natural, human-like synthesis
+        if self.use_xtts and self.xtts_engine:
+            logger.info(f"[ENGINE] Selected XTTS-v2 for {normalized_language} (ultra-realistic synthesis)")
+            return "xtts"
+
+        # Polly for Hindi/English (neural voices, very good quality)
         if self.use_polly and normalized_language in self.polly_languages:
             return "polly"
 
+        # gTTS for other Indian languages (basic but functional)
         if self.gtts_engine and (
             normalized_language in self.gtts_languages
             or normalized_language.split("-")[0] in self.gtts_languages
         ):
             return "gtts"
 
+        # SageMaker fallback (if not using Polly)
         if not self.use_polly:
             return "sagemaker"
 
@@ -131,8 +152,14 @@ class VoiceSynthesisEngine:
         if engine == "mock":
             return self.mock_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
 
+        if engine == "xtts":
+            logger.info(f"✨ Using XTTS-v2 for language: {normalized_language} (ultra-realistic)")
+            result = self.xtts_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
+            logger.info(f"XTTS returned {len(result) if isinstance(result, bytes) else 'unknown'} bytes")
+            return result
+
         if engine == "polly":
-            logger.info(f"Using AWS Polly for language: {normalized_language}")
+            logger.info(f"Using AWS Polly Neural for language: {normalized_language}")
             return self.polly_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
 
         if engine == "gtts":
@@ -223,6 +250,10 @@ class VoiceSynthesisEngine:
         """
         normalized_language = self._normalize_language(language)
         engine = self._select_engine(normalized_language)
+
+        if engine == "xtts":
+            yield from self.xtts_engine.synthesize_streaming(text, voice_id, speed, pitch, normalized_language)
+            return
 
         if engine == "polly":
             yield from self.polly_engine.synthesize_streaming(text, voice_id, speed, pitch, normalized_language)

@@ -63,13 +63,16 @@ class GTTSSynthesisEngine:
         Returns:
             Audio waveform as bytes (MP3 format)
         """
-        logger.info(f"[GTTS] Synthesizing text with language={language}, speed={speed}, text='{text[:50]}...'")
+        logger.info(f"[GTTS] Synthesizing text with language={language}, speed={speed}")
+        logger.info(f"[GTTS] Original text: '{text}'")
         
         # Get gTTS language code
         gtts_lang = self.language_map.get(language, "en")
+        logger.info(f"[GTTS] Using gTTS language code: {gtts_lang}")
         
-        # Clean text - remove excessive punctuation but keep sentence structure
-        cleaned_text = text.strip()
+        # Clean and preprocess text
+        cleaned_text = self._preprocess_text(text)
+        logger.info(f"[GTTS] Cleaned text: '{cleaned_text}'")
         
         # If text is empty after cleaning, raise error
         if not cleaned_text:
@@ -77,6 +80,7 @@ class GTTSSynthesisEngine:
         
         try:
             # Create gTTS object with explicit language
+            logger.info(f"[GTTS] Creating gTTS object...")
             tts = gTTS(
                 text=cleaned_text,
                 lang=gtts_lang,
@@ -85,6 +89,7 @@ class GTTSSynthesisEngine:
             )
             
             # Save to bytes buffer
+            logger.info(f"[GTTS] Writing audio to buffer...")
             audio_buffer = io.BytesIO()
             tts.write_to_fp(audio_buffer)
             audio_buffer.seek(0)
@@ -93,6 +98,10 @@ class GTTSSynthesisEngine:
             audio_bytes = audio_buffer.read()
             
             logger.info(f"[GTTS] Generated audio: size={len(audio_bytes)} bytes, language={gtts_lang}")
+            
+            # Verify we got actual audio data
+            if len(audio_bytes) < 1000:
+                logger.warning(f"[GTTS] Audio size is suspiciously small: {len(audio_bytes)} bytes")
             
             return audio_bytes
             
@@ -144,6 +153,39 @@ class GTTSSynthesisEngine:
             except Exception as e:
                 logger.error(f"[GTTS] Failed to synthesize sentence {i+1}: {e}")
                 continue
+    
+    def _preprocess_text(self, text: str) -> str:
+        """
+        Preprocess text for gTTS to avoid issues with punctuation.
+        
+        Args:
+            text: Raw input text
+        
+        Returns:
+            Cleaned text suitable for gTTS
+        """
+        import re
+        
+        # Strip leading/trailing whitespace
+        text = text.strip()
+        
+        # Replace multiple spaces with single space
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Remove standalone punctuation that might be read literally
+        # Keep punctuation that's part of sentences
+        text = re.sub(r'\s+[!?.,:;]+\s+', ' ', text)
+        
+        # Remove excessive exclamation marks (keep max 1)
+        text = re.sub(r'!+', '!', text)
+        
+        # Remove excessive question marks (keep max 1)
+        text = re.sub(r'\?+', '?', text)
+        
+        # Remove excessive periods (keep max 1)
+        text = re.sub(r'\.{2,}', '.', text)
+        
+        return text.strip()
     
     def _split_sentences(self, text: str) -> list[str]:
         """

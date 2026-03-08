@@ -20,3 +20,7 @@ python-dotenv==1.0.0
 
 # Multi-language TTS fallback
 gTTS==2.5.0
+
+# XTTS-v2 for ultra-realistic voice cloning
+TTS==0.22.0
+pydub==0.25.1

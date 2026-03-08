@@ -19,23 +19,27 @@ class PollySynthesisEngine:
         
         # Map language codes to Polly voices
         # Note: AWS Polly has limited Indian language support
+        # Using NEURAL voices for maximum human-like quality
         self.voice_map = {
-            "en": "Joanna",      # English (US) - Female
-            "en-US": "Joanna",
-            "en-GB": "Emma",     # English (UK) - Female
-            "en-IN": "Aditi",    # English (Indian) - Female - SUPPORTED
-            "hi": "Aditi",       # Hindi - Female - SUPPORTED
-            "hi-IN": "Aditi",
+            "en": "Matthew",     # English (US) - Male Neural (most natural)
+            "en-us": "Matthew",
+            "en-gb": "Amy",      # English (UK) - Female Neural (very expressive)
+            "en-in": "Kajal",    # English (Indian) - Female Neural - BEST FOR INDIAN ACCENT
+            "hi": "Kajal",       # Hindi - Female Neural - MOST HUMAN-LIKE
+            "hi-in": "Kajal",
             "ta": None,          # Tamil - NOT SUPPORTED by Polly
-            "ta-IN": None,
+            "ta-in": None,
             "te": None,          # Telugu - NOT SUPPORTED by Polly
-            "te-IN": None,
+            "te-in": None,
             "bn": None,          # Bengali - NOT SUPPORTED by Polly
-            "bn-IN": None,
+            "bn-in": None,
             "mr": None,          # Marathi - NOT SUPPORTED by Polly
-            "mr-IN": None,
-            "auto": "Aditi",     # Default to Indian English
+            "mr-in": None,
+            "auto": "Kajal",     # Default to Indian English Neural
         }
+        
+        # Neural-compatible voices (these support the neural engine for best quality)
+        self.neural_voices = {"Matthew", "Joanna", "Amy", "Kajal", "Aria", "Ruth", "Stephen"}
         
         # Supported languages (for validation)
         self.supported_languages = {"en", "en-US", "en-GB", "en-IN", "hi", "hi-IN", "auto"}
@@ -84,9 +88,13 @@ class PollySynthesisEngine:
         speed_percent = int(speed * 100)
         speed_percent = max(20, min(200, speed_percent))
         
-        # Build SSML for speed control
-        if speed != 1.0:
-            ssml_text = f'<speak><prosody rate="{speed_percent}%">{text}</prosody></speak>'
+        # Check if voice supports neural engine
+        use_neural = polly_voice in self.neural_voices
+        
+        # Build SSML for natural speech with prosody controls
+        if speed != 1.0 or use_neural:
+            # Enhanced SSML with breathing pauses and natural intonation
+            ssml_text = f'<speak><prosody rate="{speed_percent}%"><amazon:auto-breaths>{text}</amazon:auto-breaths></prosody></speak>'
             text_type = 'ssml'
         else:
             ssml_text = text
@@ -96,42 +104,47 @@ class PollySynthesisEngine:
             # Call AWS Polly
             polly = aws_client.session.client('polly')
             
-            # Try neural engine first, fall back to standard if not supported
-            try:
-                response = polly.synthesize_speech(
-                    Text=ssml_text,
-                    TextType=text_type,
-                    OutputFormat='pcm',
-                    VoiceId=polly_voice,
-                    Engine='neural'  # Use neural engine for better quality (uses default sample rate)
-                )
-            except Exception as neural_error:
-                if 'does not support' in str(neural_error) or 'InvalidSampleRate' in str(neural_error):
-                    logger.warning(f"[POLLY] Neural engine not supported for {polly_voice}, using standard engine")
+            # Use neural engine for compatible voices, standard for others
+            if use_neural:
+                try:
                     response = polly.synthesize_speech(
                         Text=ssml_text,
                         TextType=text_type,
                         OutputFormat='pcm',
                         VoiceId=polly_voice,
-                        SampleRate=str(self.sample_rate_standard)  # Use 16000 Hz for standard engine
-                        # No Engine parameter = standard engine
+                        Engine='neural'  # Neural engine for maximum naturalness
                     )
-                else:
-                    raise
+                    actual_sample_rate = self.sample_rate_neural
+                    logger.info(f"[POLLY] Using NEURAL engine with {polly_voice} for human-like quality")
+                except Exception as neural_error:
+                    if 'does not support' in str(neural_error) or 'InvalidSampleRate' in str(neural_error):
+                        logger.warning(f"[POLLY] Neural engine not available for {polly_voice}, falling back to standard")
+                        response = polly.synthesize_speech(
+                            Text=ssml_text,
+                            TextType=text_type,
+                            OutputFormat='pcm',
+                            VoiceId=polly_voice,
+                            SampleRate=str(self.sample_rate_standard)
+                        )
+                        actual_sample_rate = self.sample_rate_standard
+                    else:
+                        raise
+            else:
+                # Standard engine for non-neural voices
+                response = polly.synthesize_speech(
+                    Text=ssml_text,
+                    TextType=text_type,
+                    OutputFormat='pcm',
+                    VoiceId=polly_voice,
+                    SampleRate=str(self.sample_rate_standard)
+                )
+                actual_sample_rate = self.sample_rate_standard
             
             # Read audio stream
             audio_bytes = response['AudioStream'].read()
             
-            # Determine actual sample rate used
-            actual_sample_rate = self.sample_rate_standard  # Default assumption
-            try:
-                if 'Engine' in response and response['Engine'] == 'neural':
-                    actual_sample_rate = self.sample_rate_neural
-            except:
-                pass
-            
             duration = len(audio_bytes) / (actual_sample_rate * 2)  # 2 bytes per sample (16-bit)
-            logger.info(f"[POLLY] Generated audio: duration={duration:.2f}s, sample_rate={actual_sample_rate}")
+            logger.info(f"[POLLY] Generated audio: duration={duration:.2f}s, sample_rate={actual_sample_rate}, quality={'NEURAL' if use_neural else 'STANDARD'}")
             
             return audio_bytes
             
