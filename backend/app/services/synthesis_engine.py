@@ -147,6 +147,16 @@ class VoiceSynthesisEngine:
             Audio waveform as bytes or numpy array
         """
         normalized_language = self._normalize_language(language)
+        
+        # PRIORITY: If voice_id is a cloned voice (starts with "voice_"), use XTTS
+        if voice_id and voice_id.startswith("voice_"):
+            if self.use_xtts and self.xtts_engine:
+                logger.info(f"✨ Using XTTS-v2 for CLONED voice: {voice_id}")
+                return self.xtts_engine.synthesize(text, voice_id, speed, pitch, normalized_language)
+            else:
+                logger.warning(f"⚠️ Cloned voice requested but XTTS not enabled. Install XTTS or enable in .env")
+                logger.warning("Falling back to default Polly/gTTS voice")
+        
         engine = self._select_engine(normalized_language)
 
         if engine == "mock":

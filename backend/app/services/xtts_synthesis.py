@@ -113,40 +113,44 @@ class XTTSSynthesisEngine:
         
         try:
             # For XTTS, voice_id can be:
-            # 1. Path to a reference audio file for cloning
-            # 2. "default" to use built-in speaker
+            # 1. "voice_XXXXX" - fetch cloned voice from DynamoDB/S3
+            # 2. Path to a reference audio file for cloning
+            # 3. "default" to use built-in speaker
             
-            # Use default female voice if no reference provided
-            if voice_id == "default" or not voice_id:
+            reference_audio_path = None
+            
+            # Check if this is a cloned voice ID
+            if voice_id and voice_id.startswith("voice_"):
+                logger.info(f"[XTTS] Loading cloned voice: {voice_id}")
+                reference_audio_path = self._get_cloned_voice_audio(voice_id)
+            elif voice_id != "default" and voice_id and Path(voice_id).exists():
+                # Direct file path provided
+                reference_audio_path = voice_id
+            
+            # Generate audio
+            output_path = "/tmp/xtts_output.wav"
+            
+            if reference_audio_path:
+                # Use voice cloning with reference audio
+                logger.info(f"[XTTS] Cloning voice from: {reference_audio_path}")
+                self.model.tts_to_file(
+                    text=text,
+                    language=language,
+                    speaker_wav=reference_audio_path,  # Reference audio for cloning
+                    file_path=output_path
+                )
+            else:
                 # Use built-in XTTS speaker
                 logger.info("[XTTS] Using default built-in voice")
-                
-                # Generate with default speaker
-                output_path = "/tmp/xtts_output.wav"
                 self.model.tts_to_file(
                     text=text,
                     language=language,
                     file_path=output_path
                 )
-                
-                # Read generated audio
-                with open(output_path, 'rb') as f:
-                    audio_bytes = f.read()
-            else:
-                # Use voice cloning with reference audio
-                logger.info(f"[XTTS] Cloning voice from: {voice_id}")
-                
-                output_path = "/tmp/xtts_output.wav"
-                self.model.tts_to_file(
-                    text=text,
-                    language=language,
-                    speaker_wav=voice_id,  # Reference audio for cloning
-                    file_path=output_path
-                )
-                
-                # Read generated audio
-                with open(output_path, 'rb') as f:
-                    audio_bytes = f.read()
+            
+            # Read generated audio
+            with open(output_path, 'rb') as f:
+                audio_bytes = f.read()
             
             # Handle speed adjustment if needed (post-processing)
             if speed != 1.0:
@@ -324,6 +328,57 @@ class XTTSSynthesisEngine:
         except Exception as e:
             logger.warning(f"[XTTS] Speed adjustment failed: {e}")
             return audio_bytes
+    
+    def _get_cloned_voice_audio(self, voice_id: str) -> str:
+        """
+        Retrieve cloned voice reference audio from DynamoDB/S3.
+        
+        Args:
+            voice_id: Voice model ID (e.g., "voice_abc123def456")
+        
+        Returns:
+            Path to downloaded reference audio file
+        """
+        from app.services.aws_client import aws_client
+        from app.config import settings
+        import tempfile
+        import os
+        
+        try:
+            # Get voice metadata from DynamoDB
+            table = aws_client.dynamodb.Table(settings.dynamodb_voices_table)
+            response = table.get_item(Key={'id': voice_id})
+            
+            if 'Item' not in response:
+                raise ValueError(f"Cloned voice not found: {voice_id}")
+            
+            item = response['Item']
+            audio_url = item.get('reference_audio_url')
+            
+            if not audio_url:
+                raise ValueError(f"No reference audio found for voice: {voice_id}")
+            
+            # Parse S3 URL: s3://bucket/key
+            if audio_url.startswith('s3://'):
+                parts = audio_url[5:].split('/', 1)
+                bucket = parts[0]
+                key = parts[1]
+            else:
+                raise ValueError(f"Invalid S3 URL: {audio_url}")
+            
+            # Download from S3 to temp file
+            temp_dir = tempfile.gettempdir()
+            local_path = os.path.join(temp_dir, f"{voice_id}_reference.wav")
+            
+            logger.info(f"[XTTS] Downloading cloned voice from S3: {audio_url}")
+            aws_client.s3.download_file(bucket, key, local_path)
+            logger.info(f"[XTTS] Downloaded to: {local_path}")
+            
+            return local_path
+            
+        except Exception as e:
+            logger.error(f"[XTTS] Failed to retrieve cloned voice audio: {e}")
+            raise RuntimeError(f"Failed to load cloned voice '{voice_id}': {str(e)}")
     
     def _numpy_to_wav(self, audio_array: np.ndarray) -> bytes:
         """Convert numpy array to WAV bytes."""

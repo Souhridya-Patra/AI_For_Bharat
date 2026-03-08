@@ -57,7 +57,7 @@ class PollySynthesisEngine:
         
         Args:
             text: Input text to synthesize
-            voice_id: Voice model ID (ignored for Polly, uses language)
+            voice_id: Voice model ID or "default" (maps to best Polly voice)
             speed: Speech rate multiplier (0.5-2.0)
             pitch: Pitch adjustment (not supported by Polly)
             language: Language code
@@ -65,7 +65,7 @@ class PollySynthesisEngine:
         Returns:
             Audio waveform as bytes (PCM format)
         """
-        logger.info(f"[POLLY] Synthesizing text with language={language}, speed={speed}")
+        logger.info(f"[POLLY] Synthesizing text with voice_id={voice_id}, language={language}, speed={speed}")
         
         # Check if language is supported
         if language and language not in self.supported_languages:
@@ -77,8 +77,15 @@ class PollySynthesisEngine:
             logger.error(f"[POLLY] {error_msg}")
             raise ValueError(error_msg)
         
-        # Get Polly voice for language
-        polly_voice = self.voice_map.get(language or "auto", "Aditi")
+        # If custom voice ID provided (voice cloning), use best matching Polly neural voice
+        # NOTE: Real voice cloning requires XTTS - this is a fallback mapping
+        if voice_id and voice_id.startswith("voice_"):
+            logger.warning(f"[POLLY] Custom voice '{voice_id}' requested but Polly doesn't support voice cloning. Using best neural voice for language '{language}'.")
+            # Map to best neural voice based on language
+            polly_voice = self.voice_map.get(language or "auto", "Aditi")
+        else:
+            # Get Polly voice for language
+            polly_voice = self.voice_map.get(language or "auto", "Aditi")
         
         if polly_voice is None:
             raise ValueError(f"No voice available for language: {language}")
