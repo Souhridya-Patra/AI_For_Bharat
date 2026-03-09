@@ -2,7 +2,13 @@
 import logging
 from typing import Iterator, Optional
 import io
-from gtts import gTTS
+
+try:
+    from gtts import gTTS
+    GTTS_AVAILABLE = True
+except Exception:
+    gTTS = None
+    GTTS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +69,9 @@ class GTTSSynthesisEngine:
         Returns:
             Audio waveform as bytes (MP3 format)
         """
+        if not GTTS_AVAILABLE:
+            raise RuntimeError("gTTS is not installed in this environment")
+
         logger.info(f"[GTTS] Synthesizing text with language={language}, speed={speed}")
         logger.info(f"[GTTS] Original text: '{text}'")
         
